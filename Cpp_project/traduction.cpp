@@ -13,5 +13,5 @@ main()
     }
     else { std::cerr<< "Error during the file generation"<< std::endl;}
     
-}!
+}
 
