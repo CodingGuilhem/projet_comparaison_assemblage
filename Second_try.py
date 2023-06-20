@@ -205,15 +205,18 @@ def extend_anchor_front (kmer_length : int ,position1 : int , position2 : int , 
 def extend_anchor_back (kmer_length : int ,position1 : int , position2 : int , kmer_dict1: dict , kmer_dict2 : dict) :
     kmer1 = previous_kmer_no_overlap(position1,kmer_length,kmer_dict1)
     kmer2 = previous_kmer_no_overlap(position2,kmer_length,kmer_dict2)
+    print(position1)
+    print(position1 -kmer_length)
     if kmer1 == kmer2  :
-        return kmer1,position1+kmer_length,position2+kmer_length
+        return kmer1,position1-kmer_length,position2-kmer_length
     else :
         overlap = kmer_length - 1
         while overlap != 0 : 
+            
             kmer1 = previous_kmer_overlap(position1,kmer_length,overlap,kmer_dict1)
             kmer2 = previous_kmer_overlap(position2,kmer_length,overlap,kmer_dict2)
             if kmer1 == kmer2 :
-                return kmer1,position1+kmer_length,position2+kmer_length
+                return kmer1,position1-kmer_length,position2-kmer_length
             overlap -= 1
             
         print("No K-mer found" , file = sys.stderr)
@@ -223,7 +226,7 @@ def extend_anchor_back (kmer_length : int ,position1 : int , position2 : int , k
 #Input  :  int : length of the K-mer, int : aABSOLUTE position of the first K-mer , int : ABSOLUTE position of the second K-mer, dict : dictionary of all the K-mer of the first scaffold, dict : dictionary of all the K-mers of the second scaffold ( form  = {"sequence" : [position(s)]})
 #Output :  dict :  The previous K-mer (form = {"sequence" : [Absolute position in dic1,  Absolute position in dic 2]})
 
-print(extend_anchor_back(100,ancre[1][0],ancre[2][0],kmer_ref,kmer_ass))
+#print(extend_anchor_back(100,ancre[1][0],ancre[2][0],kmer_ref,kmer_ass))
 
 def find_all_anchor(dico_kmer1 : dict,dico_kmer2 : dict) -> dict:
     anchor = {}
@@ -256,13 +259,13 @@ def extend_anchor_full(anchor : str, scaffold1 : str, scaffold2 : str ,position1
         next_kmer = extend_anchor_front(kmer_length,absolute_position1,absolute_position2,kmer_dict1,kmer_dict2)
         if next_kmer[0] != None :
             position_in_scaffold1 += next_kmer[1] - position1
-            print(position_in_scaffold1)
-            position_in_scaffold2 += next_kmer[2] - position2
+            print(next_kmer[1] - position1)
+            position_in_scaffold2 += next_kmer[2] - position2 
             print(position_in_scaffold2)
             
             absolute_position1 = next_kmer[1]
             absolute_position2 = next_kmer[2]
-
+    
             into_dictionary(kmer_of_scaffold,next_kmer[0],[next_kmer[1],next_kmer[2]])
         else : #Getting out of the while loop because the anchor aren't the same for both scaffold 
             position_in_scaffold1 = len(scaffold1) 
@@ -270,10 +273,27 @@ def extend_anchor_full(anchor : str, scaffold1 : str, scaffold2 : str ,position1
 
     position_in_scaffold1 = position_in_scaffold(scaffold1, anchor)
     position_in_scaffold2 = position_in_scaffold(scaffold2, anchor)
-
+    
     absolute_position1 = position1
     absolute_position2 = position2
-    previous_kmer = extend_anchor_back(kmer_length,position1,position2)
+    
+    while position_in_scaffold1 > 0 and position_in_scaffold2 > 0 :   
+
+       
+        previous_kmer = extend_anchor_back(kmer_length,absolute_position1,absolute_position2,kmer_dict1,kmer_dict2)
+        print(previous_kmer[1])
+
+        if previous_kmer[0] != None :
+            position_in_scaffold1 -=  position1 -previous_kmer[1] 
+            position_in_scaffold2 -= position2 - previous_kmer[2] 
+            absolute_position1 = previous_kmer[1]
+
+            absolute_position2 = previous_kmer[2]
+            into_dictionary(kmer_of_scaffold,previous_kmer[0],[previous_kmer[1],previous_kmer[2]])
+        else :
+            position_in_scaffold1 = 0
+            position_in_scaffold2 = 0
+
     return kmer_of_scaffold
 
 print(extend_anchor_full(ancre[0],scaffold_ancre_assemblage,scaffold_ancre_reference,ancre[2][0],ancre[1][0],kmer_ass,kmer_ref))
