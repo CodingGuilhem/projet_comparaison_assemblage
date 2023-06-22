@@ -1,6 +1,6 @@
 import subprocess
 import sys
-
+import os
 def recupererKmers(nomfichier,k) :
     nomSortie = nomfichier.split(".")[0] + "_kmers.fasta"
     result = subprocess.run(['gkampi','-P','-k',str(k),'-o',nomSortie,'-f','-Q',nomfichier],capture_output=True, text=True,universal_newlines=True)
@@ -148,7 +148,9 @@ def next_kmer_overlap (position : int ,overlap_value : int, kmer_dictionary : di
 
     print("Next K-mer not found", file = sys.stderr)
     return None,None
-
+# Function to find the next overlapping K-mer of the sequence using his absolute position
+# Input : int : The absolute position of the K-mer, int : The number of nucleotide that overlap the K-mer, dict : A K-mer dictionary of the form : {"sequence" : [Absolute position], ...}
+# Output : str : The K-mer overlapping the inputted K-mer, int : The absolute position of the K-mer overlapping
 
 def next_kmer_no_overlap (position : int, kmer_length : int , kmer_dictionary : dict) -> str :
     for kmer in kmer_dictionary.keys() :
@@ -157,6 +159,9 @@ def next_kmer_no_overlap (position : int, kmer_length : int , kmer_dictionary : 
     
     print("Next K-mer not found" , file=sys.stderr)
     return None
+# Function to find the next K-mer without overlap of the sequence using his absolute position
+# Input : int : The absolute position of the K-mer, int : The number of nucleotide that overlap the K-mer, dict : A K-mer dictionary of the form : {"sequence" : [Absolute position], ...}
+# Output : str : The next K-mer of the inputted K-mer, int : The absolute position of the K-mer find
 
 def previous_kmer_overlap(position :  int ,kmer_length : int, overlap_value : int , kmer_dictionary : dict) -> tuple[str,int] :
     for kmer in kmer_dictionary.keys() : 
@@ -165,11 +170,17 @@ def previous_kmer_overlap(position :  int ,kmer_length : int, overlap_value : in
 
     print("Next K-mer not found", file = sys.stderr)
     return None,None
+# Function to find the previous overlapping K-mer of the sequence using his absolute position
+# Input : int : The absolute position of the K-mer, int : the length of the K-mer generated, int : The number of nucleotide that overlap the K-mer, dict : A K-mer dictionary of the form : {"sequence" : [Absolute position], ...}
+# Output : str : The previous K-mer overlapping the inputted K-mer, int : The absolute position of the K-mer find
 
 def previous_kmer_no_overlap (position : int, kmer_length : int , kmer_dictionary : dict) -> str :
     for kmer in kmer_dictionary.keys() :
         if position - kmer_length == kmer_dictionary[kmer][0] :
             return kmer
+# Function to find the previous K-mer without overlap of the sequence using his absolute position
+# Input : int : The absolute position of the K-mer, int : The number of nucleotide that overlap the K-mer, dict : A K-mer dictionary of the form : {"sequence" : [Absolute position], ...}
+# Output : str : The K-mer overlapping the inputted K-mer, int : The absolute position of the K-mer overlapping
 
 def into_dictionary ( dictionary : dict, key,input_arg) -> dict : 
     if key in dictionary :
@@ -179,6 +190,7 @@ def into_dictionary ( dictionary : dict, key,input_arg) -> dict :
         dictionary[key] += [input_arg]
 # Function to put the input_arg in the dictionary, if the key already exist the input arg will be combined with the other arguments, else the key will be created
 # Input : dict : the dictionary were you need to put the arg, a key of the dictionary, the arguments you want to add in your dictionary
+# Output : dict : The same dictionary but ordered by the values of the dictionary
 
 def extend_anchor_front (kmer_length : int ,position1 : int , position2 : int , kmer_dict1: dict , kmer_dict2 : dict) :
     kmer1 = next_kmer_no_overlap(position1,kmer_length,kmer_dict1)
@@ -226,6 +238,15 @@ def extend_anchor_back (kmer_length : int ,position1 : int , position2 : int , k
 
 #print(extend_anchor_back(100,ancre[1][0],ancre[2][0],kmer_ref,kmer_ass))
 
+def display_charging_bar(percentage):
+    bar_length = 50  # Longueur de la barre de chargement en caractères
+    filled_length = int(bar_length * percentage / 100)
+    bar = '#' * filled_length + '-' * (bar_length - filled_length)
+    percentage_display = round(percentage, 1)  # Arrondir le pourcentage à un chiffre après la virgule
+    #Affichage de la barre
+    print(f"Finding all the anchors : [{bar}] {percentage_display}%", end='\r')
+
+
 def find_all_anchor(dico_kmer1 : dict,dico_kmer2 : dict) -> dict:
     anchor = {}
     pos = 0
@@ -241,7 +262,8 @@ def find_all_anchor(dico_kmer1 : dict,dico_kmer2 : dict) -> dict:
                     anchor[kmer1]= [] 
                     anchor[kmer1] = [[dico_kmer1[kmer1][0],dico_kmer2[kmer2][0]]]
         
-        print("work in progress : " + str( (pos /(len(dico_kmer1)*len(dico_kmer2)))*100 ) + " %")
+        display_charging_bar((pos /(len(dico_kmer1)*len(dico_kmer2)))*100)
+        #print("Finding all the anchors : " + str( (pos /(len(dico_kmer1)*len(dico_kmer2)))*100 ) + " %")
     
     return anchor
     
@@ -249,8 +271,23 @@ def find_all_anchor(dico_kmer1 : dict,dico_kmer2 : dict) -> dict:
 # Input : dict : First dictionary of K-mers, dict : Second dictionary of K-mers (for of the dict : {"sequence" : [position(s) of the sequence]})
 # Output : dict :  All the K-mers present only one time in each dictionary (form : {"sequence" : [position in ditc1 , position in dict2]})
 
-all_anchors = find_all_anchor(kmer_ass,kmer_ref)
-print(all_anchors)
+# Winning time by stocking the anchors of the sequences :
+if not(os.path.exists("sequences_ancre.txt")) :
+    all_anchors = find_all_anchor(kmer_ass, kmer_ref)
+    with open("sequences_ancre.txt", "w") as file:
+        for kmer, positions in all_anchors.items():
+            line = f"{kmer}: {positions}\n"
+            file.write(line)
+else :
+    all_anchors = {}
+    with open("sequences_ancre.txt", "r") as file:
+        for line in file:
+            kmer, positions = line.strip().split(": ")
+            positions = eval(positions)  
+            all_anchors[kmer] = positions
+
+
+
 def extend_anchor_full(anchor : str, scaffold1 : str, scaffold2 : str ,position1 : int, position2 : int, kmer_dict1 : dict, kmer_dict2 : dict) -> tuple[dict,dict]: 
     kmer_of_scaffold1 = {}
     kmer_of_scaffold2 = {}
@@ -271,8 +308,8 @@ def extend_anchor_full(anchor : str, scaffold1 : str, scaffold2 : str ,position1
             absolute_position1 = next_kmer[1]
             absolute_position2 = next_kmer[2]
     
-            into_dictionary(kmer_of_scaffold1,next_kmer[0],position_in_scaffold1)
-            into_dictionary(kmer_of_scaffold2,next_kmer[0],position_in_scaffold2)
+            into_dictionary(kmer_of_scaffold1,next_kmer[0],absolute_position1)
+            into_dictionary(kmer_of_scaffold2,next_kmer[0],absolute_position2)
         else : #Getting out of the while loop because the anchor aren't the same for both scaffold 
             position_in_scaffold1 = len(scaffold1) 
             position_in_scaffold2 = len(scaffold2)
@@ -294,8 +331,8 @@ def extend_anchor_full(anchor : str, scaffold1 : str, scaffold2 : str ,position1
             absolute_position1 = previous_kmer[1]
 
             absolute_position2 = previous_kmer[2]
-            into_dictionary(kmer_of_scaffold1,previous_kmer[0],position_in_scaffold1)
-            into_dictionary(kmer_of_scaffold2,previous_kmer[0],position_in_scaffold2)
+            into_dictionary(kmer_of_scaffold1,previous_kmer[0],absolute_position1)
+            into_dictionary(kmer_of_scaffold2,previous_kmer[0],absolute_position2)
         else :
             position_in_scaffold1 = 0
             position_in_scaffold2 = 0
@@ -303,7 +340,7 @@ def extend_anchor_full(anchor : str, scaffold1 : str, scaffold2 : str ,position1
     return kmer_of_scaffold1,kmer_of_scaffold2
 # Function to extend the anchor, return all the K-mers present in the two sequences linked directly with the anchor 
 # Input : str : anchor , str : First scaffold that contains the anchor ,  str :  Second scaffold that contains the anchor, int : ABSOLUTE position of the anchor in the first scaffold , int : ABSOLUTE position of the anchor in the second scaffold , dict : dictionary of all the K-mers present in the second scaffold (dict form = {"sequence" : [position(s),...]})
-# Output : Dictionary of all the scaffold of the extended anchor (form = {"K-mer" : [position in scaffold1, position in scaffold2]})
+# Output : Dictionary of all the scaffold of the extended anchor (form = {"K-mer" : [absolute position in scaffold1, absolute position in scaffold2]})
  
 anchors = extend_anchor_full(ancre[0],scaffold_ancre_assemblage,scaffold_ancre_reference,ancre[2][0],ancre[1][0],kmer_ass,kmer_ref)
 
@@ -321,16 +358,36 @@ def create_full_anchor(anchor_dictionary : dict, anchor : str , position : int )
         full_anchor += kmer
     
     return full_anchor, list(ordered_dict.values())[0][0],list(ordered_dict.values())[-1][0]
-
+# Function that makes all the K-mer of the dictionary as one single string 
+# Input :  dict : A dictionary of all the K-mer needed to be concatenated (form = {"sequence" : [position(s)]}) , str : The anchor K-mer : will be added into the dictionary, int : The anchor position
+# Output : str : The concatenation of all the K-mer in the dictionary and the anchors in the order of their potions , int : the position of the first K-mer of the full anchor, int : the last position of the full anchor
 full_anchor1 = create_full_anchor(anchors[0],ancre[0],position_assemblage)
 
 def multi_anchor_extension(scaffold1 : str, scaffold2 : str, anchor_dictionary : dict, kmer_dictionary1 : dict, kmer_dictionary2 : dict ) :
     anchor_of_scaffolds = {}
     for anchor in anchor_dictionary.keys() :
         if anchor in scaffold1 and anchor in scaffold2 :
-            into_dictionary(anchor_of_scaffolds,anchor,anchor_dictionary[anchor])
+            into_dictionary(anchor_of_scaffolds,anchor,anchor_dictionary[anchor][0])
+    
+    anchor_of_scaffolds = ordered_dict_by_position(anchor_of_scaffolds)
+    kmer_number =0
+    kmer = list(anchor_of_scaffolds.keys())
+    position1 = position_in_scaffold(scaffold1,kmer[kmer_number])
+    position2 = position_in_scaffold(scaffold2,kmer[kmer_number])
+    full_anchor = extend_anchor_full(kmer[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer[kmer_number]][0],kmer_dictionary2[kmer[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
+    
+    
+    while position1 < len(scaffold1) and position2 < len(scaffold2) :
+        kmer_number += 1
 
-    print(anchor_dictionary)
+        if anchor_dictionary[kmer[kmer_number]][0] < full_anchor[1][kmer[kmer_number]]and  anchor_dictionary[kmer][0] < full_anchor[kmer[kmer_number]][2] :
+            position1 = position_in_scaffold(scaffold1,kmer[kmer_number])
+            position2 = position_in_scaffold(scaffold2,kmer[kmer_number])        
+            plus_anchor = extend_anchor_full(kmer[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer[kmer_number]][0],kmer_dictionary2[kmer[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
+            full_anchor += plus_anchor
+    
+
+
 
 multi_anchor_extension(scaffold_ancre_assemblage,scaffold_ancre_reference,all_anchors,kmer_ass,kmer_ref)
 print(len(scaffold_ancre_assemblage))
