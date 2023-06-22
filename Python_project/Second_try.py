@@ -378,14 +378,12 @@ def multi_anchor_extension(scaffold1 : str, scaffold2 : str, anchor_dictionary :
     
     
     while position1 < len(scaffold1) and position2 < len(scaffold2) :
-        kmer_number += 1
-
-        if anchor_dictionary[kmer[kmer_number]][0] < full_anchor[1][kmer[kmer_number]]and  anchor_dictionary[kmer][0] < full_anchor[kmer[kmer_number]][2] :
+        if anchor_dictionary[kmer[kmer_number]][0] < and  anchor_dictionary[kmer][0] < full_anchor[kmer[kmer_number]][2] :
             position1 = position_in_scaffold(scaffold1,kmer[kmer_number])
             position2 = position_in_scaffold(scaffold2,kmer[kmer_number])        
             plus_anchor = extend_anchor_full(kmer[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer[kmer_number]][0],kmer_dictionary2[kmer[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
             full_anchor += plus_anchor
-    
+            
 
 
 
