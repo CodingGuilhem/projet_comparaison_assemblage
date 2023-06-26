@@ -22,6 +22,7 @@ def recupererKmers(nomfichier,k) :
         #print("K-mer stored in : "+str(nomSortie))
 
     kmer= {}
+
     sequences = []
     position = []
     with open (nomSortie) as fasta_out :
@@ -40,9 +41,17 @@ def recupererKmers(nomfichier,k) :
             kmer[sequences[entier]] += [int(position[entier])]
             
 
-    
+    """
+    Function that forms a dictionary with the sequences of k-mers and their different positions, also creates a fasta file with the k-mers from the assemblies
+    Input: String of the filename used to extract the k-mers, int the required K to form the k-mers
+    Output: Dictionary of all the generated k-mers and their relative positions
+    Side effect: Creates a fasta file containing all the k-mers in the current directory
+    Comment: The position currently provided by gkampi is the absolute position of the k-mer in all the sequences (does not take into account scaffold changes and considers everything as a single sequence, so position 0 is for scaffold 1 only, and no other scaffolds. Additionally, it does not consider 'N' characters in its k-mer and position calculations). To add the positions relative to the scaffold, additional modifications are required.
+    Comment: If the output files already exist, they will be overwritten.
+    """
     #print("Dictionary done successfully") 
     return kmer
+
 # Function that forms a dictionary with the sequences of k-mers and their different positions, also creates a fasta file with the k-mers from the assemblies
 # Input: String of the filename used to extract the k-mers, int the required K to form the k-mers
 # Output: Dictionary of all the generated k-mers and their relative positions
@@ -78,6 +87,7 @@ def extract_scaffold(file_name : str) -> dict:
 
 # Function that extract the scaffold of a fasta file 
 # Input : string : name of the fasta 
+# Output : dict: dictionary of the scaffold present in the fasta file and their absolute position ( form = {"scaffold" : [position of the first nucleotide of the scaffold]})
 # Output : dict: dictionary of the scaffold present in the fasta file and their absolute position ( form = {"scaffold" : [position of the first nucleotide of the scaffold]})
 
 scaffold_assemblage = extract_scaffold("Test_sequences/rice_ass.fasta")
@@ -404,5 +414,5 @@ def multi_anchor_extension(scaffold1 : str,scaffold2 : str ,scaffold1_dictionary
 
 
 
-# multi_anchor_extension(scaffold_ancre_assemblage,scaffold_ancre_reference,scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref)
-# print(len(scaffold_ancre_assemblage))
+# # multi_anchor_extension(scaffold_ancre_assemblage,scaffold_ancre_reference,scaffold_assemblage,scaffold_reference,scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref)
+# # print(len(scaffold_ancre_assemblage))
