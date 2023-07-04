@@ -597,9 +597,9 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
     max_position_scaffold2 = position2 +len(scaffold_sequence_list2[list_iterator2])
     full_anchor1 = {}
     full_anchor2 = {}
-    while position1 < max_position1 or position2 < max_position2 :            
+    while position1 < max_position1 and position2 < max_position2 and list_iterator1 != len(scaffold_sequence_list1) and list_iterator2 != len(scaffold_sequence_list2):    
         if max_position_scaffold1 > max_position_scaffold2 :
-            while max_position_scaffold1 > max_position_scaffold2 or list_iterator2 == len(scaffold_sequence_list2)  :
+            while max_position_scaffold1 > max_position_scaffold2 and list_iterator2 != len(scaffold_sequence_list2)  :
                 if list_iterator2 != len(scaffold_sequence_list2) :
                     anchor = multi_anchor_extension(anchor_dict,position1,position2,len(scaffold_sequence_list1[list_iterator1]),len(scaffold_sequence_list2[list_iterator2]),kmer_length,kmer_dict1,kmer_dict2)
                     dictionary_in_dictionary(full_anchor1,anchor[0])
@@ -614,23 +614,114 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
                 else : 
                     break
         else :
-            while max_position_scaffold1 < max_position_scaffold2 or list_iterator1 == len(scaffold_sequence_list1) :
+            while max_position_scaffold1 < max_position_scaffold2 and list_iterator1 != len(scaffold_sequence_list1):
                 if list_iterator1 != len(scaffold_sequence_list1) :
                     anchor = multi_anchor_extension(anchor_dict,position1,position2,len(scaffold_sequence_list1[list_iterator1]),len(scaffold_sequence_list2[list_iterator2]),kmer_length,kmer_dict1,kmer_dict2)
-                        
                     dictionary_in_dictionary(full_anchor1,anchor[0])
                     dictionary_in_dictionary(full_anchor2,anchor[1])
                     list_iterator1 += 1
+
                     if list_iterator1 != len(scaffold_sequence_list1) :
                         max_position_scaffold1 = scaffold_position_list1[list_iterator1][0] + len(scaffold_sequence_list1[list_iterator1])
                         position1 = scaffold_position_list1[list_iterator1][0]
+                        
                         display_charging_bar(position1/max_position1*100)
+
                     else : 
                         break
                 else :
                     break
-
+            
     return (full_anchor1,full_anchor2)
 
-print(multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100))
+if not(os.path.exists("multi_anchor.txt")) :
+    multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
+    with open("multi_anchor.txt", "w") as file:
+        for kmer, positions in all_anchors[0].items():
+            line = f"{kmer}: {positions}\n"
+            file.write(line)
+        file.write("end_dict \n")
+        for kmer, positions in all_anchors[1].items():
+            line = f"{kmer}: {positions}\n"
+            file.write(line)
+        file.write("end_dict \n")
+else :
     
+    anchor_dict1 = {}
+    anchor_dict2 = {}
+    num_sequence = 0
+    with open("multi_anchor.txt", "r") as file:
+        for line in file:
+            if line[0:3] == "end" and num_sequence == 0 :
+                num_sequence += 1
+                anchor_dict1 = anchor_dict2
+                anchor_dict2 = {}
+            elif line[0:3] != "end":
+                kmer, positions = line.strip().split(": ")
+                positions = eval(positions)  
+                into_dictionary(anchor_dict2,kmer,positions[0])
+
+    multi_anchor = (anchor_dict1,anchor_dict2)        
+
+def find_scaffold_from_position(scaffold_dictionary : dict, absolute_position : int) -> int :
+    """
+    Function that find the scaffold that contains the absolute position given in argument
+    Input : dict : Dictionary of all the scaffolds , int : the absolute position you want 
+    Output : int : The number of key before the scaffold 
+    """
+    it = 1
+    position = 0
+    for scaffold in scaffold_dictionary.keys() :
+        position += len(scaffold)
+        if position > absolute_position :
+            return it
+
+        it += 1
+   
+
+# print(multi_anchor[0])
+# print(find_scaffold_from_position(multi_anchor[0],multi_anchor[0][]))
+
+def road_of_scaffold(scaffold_dictionary : dict,anchor_dictionary : dict) -> list :
+    """
+    Function that return a list of all the scaffold used for the dictionary of anchors in the order of the anchor dictionary
+    Input : dict : Dictionary of all the scaffolds , dict : Dictionary of all the anchors
+    Output : list : A list of all the scaffold in the dictionary
+    """
+    scaffolds = []
+    previous_scaffold = -1
+    for positions in anchor_dictionary.values():
+        scaffold_number = find_scaffold_from_position(scaffold_dictionary,positions[0])
+        if scaffold_number != previous_scaffold :
+            scaffolds.append(scaffold_number)
+            previous_scaffold = scaffold_number
+    return scaffolds
+
+# print(road_of_scaffold(scaffold_assemblage,multi_anchor[0]))
+
+def full_anchor_presence(scaffold_dictionary : dict, anchor_dictionary : dict) -> int :
+    """
+    Function that return the percentage of scaffold made of anchors
+    Input : dict : Dictionary of all the scaffolds, dict : Dictionary of all the anchors
+    Output : int : The percentage of scaffold made of anchors
+    """
+    full_length = 0
+    anchor_length = 0
+    previous_anchor = 0
+    for scaffold in scaffold_dictionary.keys() :
+        full_length += len(scaffold)
+    
+    for anchor in anchor_dictionary.keys() :
+        if anchor_dictionary[anchor][0] < previous_anchor :
+            print(anchor)
+            print(anchor_dictionary[anchor][0])
+        else : 
+            anchor_length += len(anchor)
+            previous_anchor = anchor_dictionary[anchor][0]+len(anchor)
+        
+    print(anchor_length)
+    print(full_length)
+    
+    return anchor_length/full_length*100
+
+print(full_anchor_presence(scaffold_assemblage,multi_anchor[0]))
