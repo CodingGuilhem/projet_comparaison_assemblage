@@ -302,7 +302,7 @@ else :
     all_anchors = (anchor_dict1,anchor_dict2)
 # Ici all anchor = ({sequence : position assemblage},{sequence : position reference})
 
-def delete_key(dictionnaire, clef):
+def delete_key(dictionary, key):
     if clef in dictionnaire:
         del dictionnaire[clef]
 
@@ -445,6 +445,7 @@ def find_next_anchor_from_position(actual_position,anchor_dictionary) :
             return anchor,anchor_dictionary[anchor][0]
 
     return None,None
+
 def find_previous_anchor_from_position(actual_position,anchor_dictionary) :
     """
     Function that find the previous anchor from the actual position you are 
@@ -457,6 +458,7 @@ def find_previous_anchor_from_position(actual_position,anchor_dictionary) :
             return anchor,anchor_dictionary[anchor][0]
 
     return None,None
+
 def create_full_anchor(anchor_dictionary : dict ) -> tuple[str,int,int] :
     """
     Function that makes all the K-mer of the dictionary as one single string 
@@ -505,8 +507,6 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
         while actual_position1 < max_position1 and actual_position2 < max_position2 :
             anchor = extend_anchor_front(actual_position1,actual_position2,kmer_length,kmer_dictionary1,kmer_dictionary2,absolute_position_scaffold1,absolute_position_scaffold2,scaffold_length1,scaffold_length2)
             
-            into_dictionary(anchor[0],actual_anchor,actual_position1)
-            into_dictionary(anchor[1],actual_anchor,actual_position2)
             dictionary_in_dictionary(front_anchor1,anchor[0])
             dictionary_in_dictionary(front_anchor2,anchor[1])
             
@@ -536,13 +536,12 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
     actual_position2 = find_previous_anchor_from_position(absolute_position_scaffold2,anchor_of_scaffold2)[1]
     actual_anchor = actual_position1[0]
     actual_position1 = actual_position1[1]
-    if actual_position1 != None or actual_position2 != None :
+    
+    if actual_position1 != None and actual_position2 != None :
         while actual_position1 > absolute_position_scaffold1 and actual_position2 > absolute_position_scaffold2 :
             anchor = extend_anchor_back(actual_position1,actual_position2,kmer_length,kmer_dictionary1,kmer_dictionary2,absolute_position_scaffold1,absolute_position_scaffold2,scaffold_length1,scaffold_length2)
-            key_anchor1 = find_keys_from_value(anchor_dictionary[0],actual_position1)
-            key_anchor2 = find_keys_from_value(anchor_dictionary[1],actual_position2)
-            into_dictionary(anchor[0],key_anchor1[0],actual_position1)
-            into_dictionary(anchor[1],key_anchor2[0],actual_position2)
+                                                      
+            
             dictionary_in_dictionary(back_anchor1,anchor[0])
             dictionary_in_dictionary(back_anchor2,anchor[1])
 
@@ -565,14 +564,17 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
             else : 
                 break
 
+    
+    
+    
     dictionary_in_dictionary(back_anchor1,front_anchor1)
     dictionary_in_dictionary(back_anchor2,front_anchor2)
-   
+    
     return back_anchor1,back_anchor2
         
 
 
-#multi_anchor_extension(all_anchors,scaffold_assemblage[scaffold_ancre_assemblage][0],scaffold_reference[scaffold_ancre_reference][0],len(scaffold_ancre_assemblage),len(scaffold_ancre_reference),100,kmer_ass,kmer_ref))
+# multi_anchor_extension(all_anchors,scaffold_assemblage[scaffold_ancre_assemblage][0],scaffold_reference[scaffold_ancre_reference][0],len(scaffold_ancre_assemblage),len(scaffold_ancre_reference),100,kmer_ass,kmer_ref))
 
 def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, anchor_dict : dict, kmer_dict1 : dict, kmer_dict2 : dict, kmer_length : int)-> tuple[dict,dict] :
     """
@@ -617,6 +619,7 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
             while max_position_scaffold1 < max_position_scaffold2 and list_iterator1 != len(scaffold_sequence_list1):
                 if list_iterator1 != len(scaffold_sequence_list1) :
                     anchor = multi_anchor_extension(anchor_dict,position1,position2,len(scaffold_sequence_list1[list_iterator1]),len(scaffold_sequence_list2[list_iterator2]),kmer_length,kmer_dict1,kmer_dict2)
+                    
                     dictionary_in_dictionary(full_anchor1,anchor[0])
                     dictionary_in_dictionary(full_anchor2,anchor[1])
                     list_iterator1 += 1
@@ -625,43 +628,55 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
                         max_position_scaffold1 = scaffold_position_list1[list_iterator1][0] + len(scaffold_sequence_list1[list_iterator1])
                         position1 = scaffold_position_list1[list_iterator1][0]
                         
-                        display_charging_bar(position1/max_position1*100)
+                        # display_charging_bar(position1/max_position1*100)
 
                     else : 
                         break
                 else :
                     break
-            
+    
+    previous_anchor = 0
+    cpt =  0
+    for anchor in full_anchor1.keys() :
+        if full_anchor1[anchor][0] < previous_anchor :
+            print(anchor)
+            print(full_anchor1[anchor])
+            cpt +=1
+        previous_anchor = full_anchor1[anchor][0] + len(anchor)
+    print(cpt)
+    print(len(full_anchor1.keys()))
     return (full_anchor1,full_anchor2)
 
-if not(os.path.exists("multi_anchor.txt")) :
-    multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
-    with open("multi_anchor.txt", "w") as file:
-        for kmer, positions in all_anchors[0].items():
-            line = f"{kmer}: {positions}\n"
-            file.write(line)
-        file.write("end_dict \n")
-        for kmer, positions in all_anchors[1].items():
-            line = f"{kmer}: {positions}\n"
-            file.write(line)
-        file.write("end_dict \n")
-else :
-    
-    anchor_dict1 = {}
-    anchor_dict2 = {}
-    num_sequence = 0
-    with open("multi_anchor.txt", "r") as file:
-        for line in file:
-            if line[0:3] == "end" and num_sequence == 0 :
-                num_sequence += 1
-                anchor_dict1 = anchor_dict2
-                anchor_dict2 = {}
-            elif line[0:3] != "end":
-                kmer, positions = line.strip().split(": ")
-                positions = eval(positions)  
-                into_dictionary(anchor_dict2,kmer,positions[0])
+multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
 
-    multi_anchor = (anchor_dict1,anchor_dict2)        
+# if not(os.path.exists("multi_anchor.txt")) :
+#     multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
+#     with open("multi_anchor.txt", "w") as file:
+#         for kmer, positions in all_anchors[0].items():
+#             line = f"{kmer}: {positions}\n"
+#             file.write(line)
+#         file.write("end_dict \n")
+#         for kmer, positions in all_anchors[1].items():
+#             line = f"{kmer}: {positions}\n"
+#             file.write(line)
+#         file.write("end_dict \n")
+# else :
+    
+#     anchor_dict1 = {}
+#     anchor_dict2 = {}
+#     num_sequence = 0
+#     with open("multi_anchor.txt", "r") as file:
+#         for line in file:
+#             if line[0:3] == "end" and num_sequence == 0 :
+#                 num_sequence += 1
+#                 anchor_dict1 = anchor_dict2
+#                 anchor_dict2 = {}
+#             elif line[0:3] != "end":
+#                 kmer, positions = line.strip().split(": ")
+#                 positions = eval(positions)  
+#                 into_dictionary(anchor_dict2,kmer,positions[0])
+
+#     multi_anchor = (anchor_dict1,anchor_dict2)        
 
 def find_scaffold_from_position(scaffold_dictionary : dict, absolute_position : int) -> int :
     """
@@ -710,18 +725,12 @@ def full_anchor_presence(scaffold_dictionary : dict, anchor_dictionary : dict) -
     previous_anchor = 0
     for scaffold in scaffold_dictionary.keys() :
         full_length += len(scaffold)
-    
-    for anchor in anchor_dictionary.keys() :
-        if anchor_dictionary[anchor][0] < previous_anchor :
-            print(anchor)
-            print(anchor_dictionary[anchor][0])
-        else : 
-            anchor_length += len(anchor)
-            previous_anchor = anchor_dictionary[anchor][0]+len(anchor)
         
-    print(anchor_length)
-    print(full_length)
+    for anchor in anchor_dictionary.keys() :
+        anchor_length += len(anchor)
     
+    
+        
     return anchor_length/full_length*100
 
 print(full_anchor_presence(scaffold_assemblage,multi_anchor[0]))
