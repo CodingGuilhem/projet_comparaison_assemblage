@@ -322,7 +322,7 @@ def extract_position_from_dictionary (dictionary : dict) -> tuple[int,int] :
     """
     Function that makes all the K-mer of the dictionary as one single string 
     Input :  dict : A dictionary of all the K-mer needed to be concatenated (form = {"sequence" : [position(s)]}) , str : The anchor K-mer : will be added into the dictionary, int : The anchor position
-    Output : str : The concatenation of all the K-mer in the dictionary and the anchors in the order of their potions , int : the position of the first K-mer of the full anchor, int : the last position of the full anchor
+    Output : int : the position of the first K-mer of the full anchor, int : the last position of the full anchor
 
     """
     position = list(dictionary.values())
@@ -441,7 +441,7 @@ def find_next_anchor_from_position(actual_position,anchor_dictionary) :
     
     ordered_dict = ordered_dict_by_position(anchor_dictionary)
     for anchor in anchor_dictionary.keys() :
-        if anchor_dictionary[anchor][0] > actual_position :
+        if anchor_dictionary[anchor][0] > actual_position+len(anchor):
             return anchor,anchor_dictionary[anchor][0]
 
     return None,None
@@ -453,7 +453,7 @@ def find_previous_anchor_from_position(actual_position,anchor_dictionary) :
     """
     ordered_dict = ordered_dict_by_position(anchor_dictionary)
     for anchor in reversed(anchor_dictionary.keys()) :
-        if anchor_dictionary[anchor][0] < actual_position :
+        if anchor_dictionary[anchor][0] < actual_position -len(anchor):
             return anchor,anchor_dictionary[anchor][0]
 
     return None,None
