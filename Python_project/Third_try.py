@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import matplotlib.pyplot as plt
 
 def into_dictionary(dictionary: dict, key, *input_args) -> dict:
     """
@@ -639,50 +640,48 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
     cpt =  0
     for anchor in full_anchor1.keys() :
         if full_anchor1[anchor][0] < previous_anchor :
-            print(anchor)
-            print(full_anchor1[anchor])
+            
             cpt +=1
         previous_anchor = full_anchor1[anchor][0] + len(anchor)
-    print(cpt)
-    print(len(full_anchor1.keys()))
+    
     return (full_anchor1,full_anchor2)
 
-multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
+#multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
 
-# if not(os.path.exists("multi_anchor.txt")) :
-#     multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
-#     with open("multi_anchor.txt", "w") as file:
-#         for kmer, positions in all_anchors[0].items():
-#             line = f"{kmer}: {positions}\n"
-#             file.write(line)
-#         file.write("end_dict \n")
-#         for kmer, positions in all_anchors[1].items():
-#             line = f"{kmer}: {positions}\n"
-#             file.write(line)
-#         file.write("end_dict \n")
-# else :
+if not(os.path.exists("multi_anchor.txt")) :
+    multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
+    with open("multi_anchor.txt", "w") as file:
+        for kmer, positions in all_anchors[0].items():
+            line = f"{kmer}: {positions}\n"
+            file.write(line)
+        file.write("end_dict \n")
+        for kmer, positions in all_anchors[1].items():
+            line = f"{kmer}: {positions}\n"
+            file.write(line)
+        file.write("end_dict \n")
+else :
     
-#     anchor_dict1 = {}
-#     anchor_dict2 = {}
-#     num_sequence = 0
-#     with open("multi_anchor.txt", "r") as file:
-#         for line in file:
-#             if line[0:3] == "end" and num_sequence == 0 :
-#                 num_sequence += 1
-#                 anchor_dict1 = anchor_dict2
-#                 anchor_dict2 = {}
-#             elif line[0:3] != "end":
-#                 kmer, positions = line.strip().split(": ")
-#                 positions = eval(positions)  
-#                 into_dictionary(anchor_dict2,kmer,positions[0])
+    anchor_dict1 = {}
+    anchor_dict2 = {}
+    num_sequence = 0
+    with open("multi_anchor.txt", "r") as file:
+        for line in file:
+            if line[0:3] == "end" and num_sequence == 0 :
+                num_sequence += 1
+                anchor_dict1 = anchor_dict2
+                anchor_dict2 = {}
+            elif line[0:3] != "end":
+                kmer, positions = line.strip().split(": ")
+                positions = eval(positions)  
+                into_dictionary(anchor_dict2,kmer,positions[0])
 
-#     multi_anchor = (anchor_dict1,anchor_dict2)        
+    multi_anchor = (anchor_dict1,anchor_dict2)        
 
 def find_scaffold_from_position(scaffold_dictionary : dict, absolute_position : int) -> int :
     """
     Function that find the scaffold that contains the absolute position given in argument
     Input : dict : Dictionary of all the scaffolds , int : the absolute position you want 
-    Output : int : The number of key before the scaffold 
+    Output : int : The number of the scaffold that contains the absolute position
     """
     it = 1
     position = 0
@@ -692,7 +691,8 @@ def find_scaffold_from_position(scaffold_dictionary : dict, absolute_position : 
             return it
 
         it += 1
-   
+
+       
 
 # print(multi_anchor[0])
 # print(find_scaffold_from_position(multi_anchor[0],multi_anchor[0][]))
@@ -733,4 +733,147 @@ def full_anchor_presence(scaffold_dictionary : dict, anchor_dictionary : dict) -
         
     return anchor_length/full_length*100
 
-print(full_anchor_presence(scaffold_assemblage,multi_anchor[0]))
+# print(full_anchor_presence(scaffold_assemblage,multi_anchor[0]))
+
+def anchor_number_per_scaffold (anchor_dictionary : dict, scaffold_dictionary : dict) -> dict :
+    """
+    Function that return a dictionary of the number of anchor per scaffold
+    Input : dict : Dictionary of all the anchors, dict : Dictionary of all the scaffolds
+    Output : dict : Dictionary of the number of anchor per scaffold
+    """
+    anchor_number = {}
+    
+    for scaffold in range(len(scaffold_dictionary.keys())) :
+        anchor_number[scaffold] = 0    
+
+    for anchor in anchor_dictionary.keys() :
+        scaffold_number = find_scaffold_from_position(scaffold_dictionary,anchor_dictionary[anchor][0])
+        anchor_number[scaffold_number] += 1   
+
+    return anchor_number  
+    
+#print(anchor_number_per_scaffold(multi_anchor[0],scaffold_assemblage))
+
+def scaffold_of_two_anchor(scaffold_dictionary1 : dict, scaffold_dictionary2 : dict , anchor_dictionary1 : dict, anchor_dictionary2 : dict) -> dict :
+    """
+    Function that return a dictionary of the number of scaffold that contain the two anchors
+    Input : dict : Dictionary of all the scaffolds, dict : Dictionary of all the anchors, dict : Dictionary of all the anchors
+    Output : dict : Dictionary of the number of scaffold that contain the two anchors
+    """
+    scaffold_number = {}
+
+    for anchor in anchor_dictionary1.keys() :
+        scaffold = find_scaffold_from_position(scaffold_dictionary1,anchor_dictionary1[anchor][0])
+        into_dictionary(scaffold_number,anchor,scaffold)
+    for anchor in anchor_dictionary2.keys() :
+        scaffold = find_scaffold_from_position(scaffold_dictionary2,anchor_dictionary1[anchor][0])
+        into_dictionary(scaffold_number,anchor,scaffold)
+   
+    return scaffold_number
+
+#print(scaffold_of_two_anchor(scaffold_assemblage,scaffold_reference,multi_anchor[0],multi_anchor[1]))
+
+
+def get_all_position(dictionary,position_value):
+    """
+    Function that return a list of all the position of the dictionary
+    Input : dict : Dictionary of all the anchors, int : The position you want
+    Output : list : List of all the position of the dictionary
+    """
+    position_values = []
+    for positions in dictionary.values():
+        position_values.append(positions[position_value])
+    return position_values
+
+def create_scaffold_dot(scaffold_of_two_anchor_dict : dict, graph_name : str) -> file :
+    """
+    Function that create a dot file of the scaffold
+    Input : dict : Dictionary of all the anchors with their relative scaffolds (form = {anchor : [scaffold1,scaffold2]}), str : The name of the dot file you want to create
+    Output : file : A dot file of the scaffold
+    """
+    with open (graph_name+".dot","w") as dot_file :
+        dot_file.write("graph "+ graph_name +"{\n")
+        for anchor in scaffold_of_two_anchor_dict.keys() :
+            dot_file.write(str(scaffold_of_two_anchor_dict[anchor][0]) + " -- " + str(scaffold_of_two_anchor_dict[anchor][1]) + ";\n")
+        dot_file.write("}")
+
+    print("The dot file has been created and named : " + graph_name + ".dot")
+
+#create_scaffold_dot(scaffold_of_two_anchor(scaffold_assemblage,scaffold_reference,multi_anchor[0],multi_anchor[1]),"test")
+
+
+def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_out: str = None, graphics : bool = False) :
+    """
+    Final function of the project to compare the two fasta file
+    Input : str : The first fasta file, str : The second fasta file
+    Output : The stats needed and the anchor file 
+    """
+
+    kmer1 = recupererKmers(fasta_file1,kmer_size)
+    kmer2 = recupererKmers(fasta_file2,kmer_size)
+
+    scaffold1 = extract_scaffold(fasta_file1)
+    scaffold2 = extract_scaffold(fasta_file2)
+
+    all_anchors = find_all_anchor(kmer1,kmer2)
+
+    multi_anchor = multi_scaffold_extension(scaffold1,scaffold2,all_anchors,kmer1,kmer2,kmer_size)
+    if name_file_out != None :
+        with open (name_file_out+".txt","w") as file :
+            for kmer, positions in multi_anchor[0].items():
+                line = f"{kmer}: {positions}\n"
+                file.write(line)
+            file.write("end_dict \n")
+            for kmer, positions in multi_anchor[1].items():
+                line = f"{kmer}: {positions}\n"
+                file.write(line)
+            file.write("end_dict \n")   
+    
+    if graphics == False :
+            
+        percent_of_anchor1 = full_anchor_presence(scaffold1,multi_anchor[0])
+        print(f"The percentage of anchors in the first fasta is {percent_of_anchor1}%")
+        percent_of_anchor2 = full_anchor_presence(scaffold2,multi_anchor[1])
+        print(f"The percentage of anchors in the second fasta is {percent_of_anchor2}%")
+
+        anchor_number1 = anchor_number_per_scaffold(multi_anchor[0],scaffold1)
+        print(f"The number of anchor per scaffold in the first fasta is {anchor_number1}")
+        anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
+        print(f"The number of anchor per scaffold in the second fasta is {anchor_number2}")
+
+        scaffold_of_two_anchor = scaffold_of_two_anchor(scaffold1,scaffold2,multi_anchor[0],multi_anchor[1])   
+        print(f"Here is the list of all the anchors and the scaffold were it belong ( form = anchor : [scaffold1, scaffold2]) {scaffold_of_two_anchor}")
+    else :
+        
+        #Graph of the percentage of anchor in the fasta
+        percent_of_anchor1 = full_anchor_presence(scaffold1,multi_anchor[0])
+        percent_of_anchor2 = full_anchor_presence(scaffold2,multi_anchor[1])
+        values = [percent_of_anchor1,percent_of_anchor2]
+        labels = ["1","2"]
+        plt.bar(labels,values)
+        plt.title("Percentage of anchor in the fasta")
+        plt.xlabel("Fasta file")
+        plt.ylabel("Percentage of anchor")
+        plt.show()
+
+        #Graph of the number of anchor per scaffold
+        anchor_number1 = anchor_number_per_scaffold(multi_anchor[0],scaffold1)
+        anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
+        values = get_all_position(anchor_number1,0) + get_all_position(anchor_number2,0)
+        labels = [range(len(anchor_number1.keys())),range(len(anchor_number2.keys()))]
+        plt.bar(labels,values)
+        plt.title("Number of anchor per scaffold")
+        plt.xlabel("Scaffold")
+        plt.ylabel("Number of anchor")
+        plt.show()
+
+        #Graph of the road used to find the anchors
+        scaffold_of_two_anchor = scaffold_of_two_anchor(scaffold1,scaffold2,multi_anchor[0],multi_anchor[1])   
+        create_scaffold_dot(scaffold_of_two_anchor,name_file_out+".dot")
+        os.system("dot -Tpng "+name_file_out+".dot -o "+name_file_out+".png")
+        
+
+    return multi_anchor
+
+final_task("Test_sequences/rice_ass.fasta","Test_sequences/rice_ref.fasta",500,"test",graphics=True)
+        
