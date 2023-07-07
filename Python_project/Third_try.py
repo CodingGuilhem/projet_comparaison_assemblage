@@ -307,6 +307,14 @@ def delete_key(dictionary, key):
     if clef in dictionnaire:
         del dictionnaire[clef]
 
+def delete_value_from_dict(dictionary, value):
+    keys_to_delete = []
+    for key, val in dictionary.items():
+        if val == value:
+            keys_to_delete.append(key)
+    for key in keys_to_delete:
+        del dictionary[key]
+
 def dictionary_in_dictionary(dictionary : dict, dictionary_to_add : dict) -> dict :
 
     """
@@ -316,7 +324,11 @@ def dictionary_in_dictionary(dictionary : dict, dictionary_to_add : dict) -> dic
 
     """
     for key in dictionary_to_add.keys() :
-        into_dictionary(dictionary,key,dictionary_to_add[key][0])
+        if dictionary_to_add[key] not in dictionary.values() :
+            dictionary[key] = dictionary_to_add[key]
+        else : 
+            delete_value_from_dict(dictionary,dictionary_to_add[key])
+            into_dictionary(dictionary,key,dictionary_to_add[key][0])
     return dictionary
 
 def extract_position_from_dictionary (dictionary : dict) -> tuple[int,int] :
@@ -442,7 +454,7 @@ def find_next_anchor_from_position(actual_position,anchor_dictionary) :
     
     ordered_dict = ordered_dict_by_position(anchor_dictionary)
     for anchor in anchor_dictionary.keys() :
-        if anchor_dictionary[anchor][0] > actual_position+len(anchor):
+        if anchor_dictionary[anchor][0] > actual_position+len(anchor)+1:
             return anchor,anchor_dictionary[anchor][0]
 
     return None,None
@@ -455,7 +467,7 @@ def find_previous_anchor_from_position(actual_position,anchor_dictionary) :
     """
     ordered_dict = ordered_dict_by_position(anchor_dictionary)
     for anchor in reversed(anchor_dictionary.keys()) :
-        if anchor_dictionary[anchor][0] < actual_position -len(anchor):
+        if anchor_dictionary[anchor][0] < actual_position -len(anchor)-1:
             return anchor,anchor_dictionary[anchor][0]
 
     return None,None
@@ -496,7 +508,7 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
         if anchor_dictionary[1][anchor][0] > absolute_position_scaffold2 and (anchor_dictionary[1][anchor][0] + kmer_length) <= max_position2 :
             into_dictionary(anchor_of_scaffold2,anchor,anchor_dictionary[1][anchor][0])
 
-    
+    print
 
     front_anchor1 = {}
     front_anchor2 = {}
@@ -628,7 +640,6 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
                     if list_iterator1 != len(scaffold_sequence_list1) :
                         max_position_scaffold1 = scaffold_position_list1[list_iterator1][0] + len(scaffold_sequence_list1[list_iterator1])
                         position1 = scaffold_position_list1[list_iterator1][0]
-                        
                         # display_charging_bar(position1/max_position1*100)
 
                     else : 
@@ -636,13 +647,8 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
                 else :
                     break
     
-    previous_anchor = 0
-    cpt =  0
-    for anchor in full_anchor1.keys() :
-        if full_anchor1[anchor][0] < previous_anchor :
-            
-            cpt +=1
-        previous_anchor = full_anchor1[anchor][0] + len(anchor)
+    print(full_anchor1)
+    print(full_anchor2)
     
     return (full_anchor1,full_anchor2)
 
@@ -691,6 +697,7 @@ def find_scaffold_from_position(scaffold_dictionary : dict, absolute_position : 
             return it
 
         it += 1
+    print(position)
 
        
 
@@ -716,22 +723,32 @@ def road_of_scaffold(scaffold_dictionary : dict,anchor_dictionary : dict) -> lis
 
 def full_anchor_presence(scaffold_dictionary : dict, anchor_dictionary : dict) -> int :
     """
-    Function that return the percentage of scaffold made of anchors
+    Function that return the percentage of anchors present in the scaffolds
     Input : dict : Dictionary of all the scaffolds, dict : Dictionary of all the anchors
     Output : int : The percentage of scaffold made of anchors
     """
     full_length = 0
     anchor_length = 0
     previous_anchor = 0
+    ordered_dict = ordered_dict_by_position(anchor_dictionary)
     for scaffold in scaffold_dictionary.keys() :
         full_length += len(scaffold)
-        
-    for anchor in anchor_dictionary.keys() :
-        anchor_length += len(anchor)
     
-    
+    for anchor in ordered_dict.keys() :
         
-    return anchor_length/full_length*100
+        print(previous_anchor)
+        print(anchor_dictionary[anchor][0])
+        if previous_anchor == 0:
+            anchor_length += len(anchor)       
+        elif anchor_dictionary[anchor][0] > previous_anchor :
+            anchor_length += len(anchor)
+            
+        
+        previous_anchor = anchor_dictionary[anchor][0] + len(anchor)
+    
+    print(anchor_length)
+    print(full_length)
+    return anchor_length/full_length
 
 # print(full_anchor_presence(scaffold_assemblage,multi_anchor[0]))
 
@@ -739,53 +756,50 @@ def anchor_number_per_scaffold (anchor_dictionary : dict, scaffold_dictionary : 
     """
     Function that return a dictionary of the number of anchor per scaffold
     Input : dict : Dictionary of all the anchors, dict : Dictionary of all the scaffolds
-    Output : dict : Dictionary of the number of anchor per scaffold
+    Output : dict : Dictionary of the number of anchor per scaffold {form = {scaffold_number : number_of_anchor})
     """
     anchor_number = {}
-    
-    for scaffold in range(len(scaffold_dictionary.keys())) :
-        anchor_number[scaffold] = 0    
 
     for anchor in anchor_dictionary.keys() :
         scaffold_number = find_scaffold_from_position(scaffold_dictionary,anchor_dictionary[anchor][0])
-        anchor_number[scaffold_number] += 1   
+        if scaffold_number not in anchor_number.keys() :
+            anchor_number[scaffold_number] = 1
+        else :
+            anchor_number[scaffold_number] += 1   
 
-    return anchor_number  
+    sorted_dict = {k: anchor_number[k] for k in sorted(anchor_number.keys())}
+    return sorted_dict  
     
 #print(anchor_number_per_scaffold(multi_anchor[0],scaffold_assemblage))
 
-def scaffold_of_two_anchor(scaffold_dictionary1 : dict, scaffold_dictionary2 : dict , anchor_dictionary1 : dict, anchor_dictionary2 : dict) -> dict :
+def link_between_scaffolds(anchor_dictionary1 : dict, anchor_dictionary2 : dict) -> dict :
     """
-    Function that return a dictionary of the number of scaffold that contain the two anchors
-    Input : dict : Dictionary of all the scaffolds, dict : Dictionary of all the anchors, dict : Dictionary of all the anchors
-    Output : dict : Dictionary of the number of scaffold that contain the two anchors
-    """
-    scaffold_number = {}
+    Function that return a dictionary of the number of link between two scaffolds
+    Input : dict : Dictionary of all the anchors of the first scaffold, dict : Dictionary of all the anchors of the second scaffold
+    Output : dict : Dictionary of the number of link between two scaffolds {form = {scaffold_number : number_of_link})
+    """ 
+    link_between_scaffolds = {}
+    for anchor1 in anchor_dictionary1.keys() :
+        for anchor2 in anchor_dictionary2.keys() :
+            if anchor1 == anchor2 :
+                scaffold1 = find_scaffold_from_position(scaffold_assemblage,anchor_dictionary1[anchor1][0])
+                scaffold2 = find_scaffold_from_position(scaffold_assemblage,anchor_dictionary2[anchor2][0])
+                if scaffold2 != None : 
+                    key = str(scaffold1) + "--" + str(scaffold2)
+                    if key not in link_between_scaffolds.keys() :
+                        link_between_scaffolds[key] = 1
+                    else :
+                        link_between_scaffolds[key] += 1
+ 
+    sorted_dict = {k: link_between_scaffolds[k] for k in sorted(link_between_scaffolds.keys())}
+    return sorted_dict
 
-    for anchor in anchor_dictionary1.keys() :
-        scaffold = find_scaffold_from_position(scaffold_dictionary1,anchor_dictionary1[anchor][0])
-        into_dictionary(scaffold_number,anchor,scaffold)
-    for anchor in anchor_dictionary2.keys() :
-        scaffold = find_scaffold_from_position(scaffold_dictionary2,anchor_dictionary1[anchor][0])
-        into_dictionary(scaffold_number,anchor,scaffold)
-   
-    return scaffold_number
-
-#print(scaffold_of_two_anchor(scaffold_assemblage,scaffold_reference,multi_anchor[0],multi_anchor[1]))
+#print(link_between_scaffolds(multi_anchor[0],multi_anchor[1]))
 
 
-def get_all_position(dictionary,position_value):
-    """
-    Function that return a list of all the position of the dictionary
-    Input : dict : Dictionary of all the anchors, int : The position you want
-    Output : list : List of all the position of the dictionary
-    """
-    position_values = []
-    for positions in dictionary.values():
-        position_values.append(positions[position_value])
-    return position_values
 
-def create_scaffold_dot(scaffold_of_two_anchor_dict : dict, graph_name : str) -> file :
+
+def create_scaffold_dot(link_between_anchor_dict : dict, graph_name : str) -> file :
     """
     Function that create a dot file of the scaffold
     Input : dict : Dictionary of all the anchors with their relative scaffolds (form = {anchor : [scaffold1,scaffold2]}), str : The name of the dot file you want to create
@@ -793,16 +807,17 @@ def create_scaffold_dot(scaffold_of_two_anchor_dict : dict, graph_name : str) ->
     """
     with open (graph_name+".dot","w") as dot_file :
         dot_file.write("graph "+ graph_name +"{\n")
-        for anchor in scaffold_of_two_anchor_dict.keys() :
-            dot_file.write(str(scaffold_of_two_anchor_dict[anchor][0]) + " -- " + str(scaffold_of_two_anchor_dict[anchor][1]) + ";\n")
+        for anchor in link_between_anchor_dict.keys() :
+            dot_file.write(anchor + "[penwidth = " + str(link_between_anchor_dict[anchor]) +"];\n" )
+
         dot_file.write("}")
 
-    print("The dot file has been created and named : " + graph_name + ".dot")
+    # print("The dot file has been created and named : " + graph_name + ".dot")
 
 #create_scaffold_dot(scaffold_of_two_anchor(scaffold_assemblage,scaffold_reference,multi_anchor[0],multi_anchor[1]),"test")
 
 
-def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_out: str = None, graphics : bool = False) :
+def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_out: str = None, graphics : bool = False, all_anchor : dict = None) :
     """
     Final function of the project to compare the two fasta file
     Input : str : The first fasta file, str : The second fasta file
@@ -814,10 +829,10 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
 
     scaffold1 = extract_scaffold(fasta_file1)
     scaffold2 = extract_scaffold(fasta_file2)
+    if all_anchor == None :
+        all_anchors = find_all_anchor(kmer1,kmer2)
 
-    all_anchors = find_all_anchor(kmer1,kmer2)
-
-    multi_anchor = multi_scaffold_extension(scaffold1,scaffold2,all_anchors,kmer1,kmer2,kmer_size)
+    multi_anchor = multi_scaffold_extension(scaffold1,scaffold2,all_anchor,kmer1,kmer2,kmer_size)
     if name_file_out != None :
         with open (name_file_out+".txt","w") as file :
             for kmer, positions in multi_anchor[0].items():
@@ -845,35 +860,26 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
         print(f"Here is the list of all the anchors and the scaffold were it belong ( form = anchor : [scaffold1, scaffold2]) {scaffold_of_two_anchor}")
     else :
         
-        #Graph of the percentage of anchor in the fasta
+        
+
+        #Graph of the number of anchor per scaffold
         percent_of_anchor1 = full_anchor_presence(scaffold1,multi_anchor[0])
         percent_of_anchor2 = full_anchor_presence(scaffold2,multi_anchor[1])
         values = [percent_of_anchor1,percent_of_anchor2]
         labels = ["1","2"]
         plt.bar(labels,values)
-        plt.title("Percentage of anchor in the fasta")
+        plt.title("Number of anchor in per scaffold in the fasta")
         plt.xlabel("Fasta file")
-        plt.ylabel("Percentage of anchor")
+        plt.ylabel("Anchor per scaffold of anchor")
         plt.show()
 
-        #Graph of the number of anchor per scaffold
-        anchor_number1 = anchor_number_per_scaffold(multi_anchor[0],scaffold1)
-        anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
-        values = get_all_position(anchor_number1,0) + get_all_position(anchor_number2,0)
-        labels = [range(len(anchor_number1.keys())),range(len(anchor_number2.keys()))]
-        plt.bar(labels,values)
-        plt.title("Number of anchor per scaffold")
-        plt.xlabel("Scaffold")
-        plt.ylabel("Number of anchor")
-        plt.show()
-
-        #Graph of the road used to find the anchors
-        scaffold_of_two_anchor = scaffold_of_two_anchor(scaffold1,scaffold2,multi_anchor[0],multi_anchor[1])   
-        create_scaffold_dot(scaffold_of_two_anchor,name_file_out+".dot")
-        os.system("dot -Tpng "+name_file_out+".dot -o "+name_file_out+".png")
-        
+        #Link between the anchors of the two scaffold
+        link = link_between_scaffolds(multi_anchor[0],multi_anchor[1])
+        create_scaffold_dot(link,name_file_out)
+        os.system("dot -Tpng "+ name_file_out + ".dot -o " + name_file_out + ".png")
+        print("The png file has been created and named : " + name_file_out + ".png")
 
     return multi_anchor
 
-final_task("Test_sequences/rice_ass.fasta","Test_sequences/rice_ref.fasta",500,"test",graphics=True)
-        
+final_task("Test_sequences/rice_ass.fasta","Test_sequences/rice_ref.fasta",100,"test2",graphics=True)
+
