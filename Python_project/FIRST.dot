@@ -1,6 +1,0 @@
-graph first {
-    1--B;
-    B--C;
-    C--D;
-    
-}
