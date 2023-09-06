@@ -4,7 +4,7 @@ import subprocess
 # trouver une ancre unique sur les deux alignement ( sequence + position + n° scaffold) 
 # Extraire les identifiants des sequences ( fonction ou gkampi ou regeps)
 # Trouver les kmers qui suivent :pas besoin qu'ils soit unique seulement l'ancre doit être unique
-# Arranger la fonction proochain kmer pour ces besoins  
+# Arranger la fonction proochain kmer pour ces besoins  sikhr
 
 
 def recupererKmers(nomfichier,k) :
