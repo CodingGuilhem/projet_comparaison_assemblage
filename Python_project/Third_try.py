@@ -363,7 +363,7 @@ def extend_anchor_front (start_position1 : int,start_position2 : int,kmer_length
         
         next_kmer1 = next_kmer_no_overlap(actual_position1,kmer_length,kmer_dictionary1)
         next_kmer2 = next_kmer_no_overlap(actual_position2,kmer_length,kmer_dictionary2)
-        if actual_position1 + kmer_length > max_position1 or actual_position2 + kmer_length > max_position2 or next_kmer1 == None or next_kmer2 == None :
+        if actual_position1 + kmer_length > max_position1 or actual_position2 + kmer_length > max_position2 or next_kmer1 == None or next_kmer2 == None or next_kmer1 != next_kmer2:
            
             overlap = kmer_length - 1
             next_kmer1 = next_kmer_overlap(actual_position1,overlap,kmer_dictionary1)
@@ -386,7 +386,7 @@ def extend_anchor_front (start_position1 : int,start_position2 : int,kmer_length
         else :
             actual_position1 += kmer_length
             actual_position2 += kmer_length
-            
+            print(next_kmer1 == next_kmer2)
             into_dictionary(kmer_of_anchors1, next_kmer1, actual_position1)
             into_dictionary(kmer_of_anchors2, next_kmer2, actual_position2)
     return kmer_of_anchors1, kmer_of_anchors2
@@ -408,7 +408,7 @@ def extend_anchor_back (start_position1 : int,start_position2 : int,kmer_length 
         previous_kmer1 = previous_kmer_no_overlap(actual_position1,kmer_length,kmer_dictionary1)
         previous_kmer2 = previous_kmer_no_overlap(actual_position2,kmer_length,kmer_dictionary2)
 
-        if actual_position1 - kmer_length < 0 or previous_kmer1 == None or previous_kmer2 == None :
+        if actual_position1 - kmer_length < 0 or previous_kmer1 == None or previous_kmer2 == None or previous_kmer1 != previous_kmer2:
             overlap = kmer_length - 1
             previous_kmer1 = previous_kmer_overlap(actual_position1,kmer_length,overlap,kmer_dictionary1)
             previous_kmer2 = previous_kmer_overlap(actual_position2,kmer_length,overlap,kmer_dictionary2)
@@ -430,6 +430,7 @@ def extend_anchor_back (start_position1 : int,start_position2 : int,kmer_length 
         else :
             actual_position1 -= kmer_length
             actual_position2 -= kmer_length
+            print(previous_kmer1 == previous_kmer2)
             into_dictionary(kmer_of_anchors1, previous_kmer1, actual_position1)
             into_dictionary(kmer_of_anchors2, previous_kmer2, actual_position2)
 
@@ -508,7 +509,6 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
         if anchor_dictionary[1][anchor][0] > absolute_position_scaffold2 and (anchor_dictionary[1][anchor][0] + kmer_length) <= max_position2 :
             into_dictionary(anchor_of_scaffold2,anchor,anchor_dictionary[1][anchor][0])
 
-    print
 
     front_anchor1 = {}
     front_anchor2 = {}
@@ -516,31 +516,45 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
     actual_position2 = find_next_anchor_from_position(absolute_position_scaffold2,anchor_of_scaffold2)[1]
     actual_anchor = actual_position1[0]
     actual_position1 = actual_position1[1]
+    
     if actual_position2 != None  and actual_position1 != None :
         while actual_position1 < max_position1 and actual_position2 < max_position2 :
             anchor = extend_anchor_front(actual_position1,actual_position2,kmer_length,kmer_dictionary1,kmer_dictionary2,absolute_position_scaffold1,absolute_position_scaffold2,scaffold_length1,scaffold_length2)
-            
-            dictionary_in_dictionary(front_anchor1,anchor[0])
-            dictionary_in_dictionary(front_anchor2,anchor[1])
-            
-            positions1 = extract_position_from_dictionary(anchor[0])
-            positions2 = extract_position_from_dictionary(anchor[1])
-            
-            position_next_anchor1 = find_next_anchor_from_position(positions1[1],anchor_of_scaffold1)
-            position_next_anchor2 = find_next_anchor_from_position(positions2[1],anchor_of_scaffold2)[1]
+            if anchor[0] != {} and anchor[1] != {} :
+                dictionary_in_dictionary(front_anchor1,anchor[0])
+                dictionary_in_dictionary(front_anchor2,anchor[1])
+                
+                positions1 = extract_position_from_dictionary(anchor[0])
+                positions2 = extract_position_from_dictionary(anchor[1])
+                
+                position_next_anchor1 = find_next_anchor_from_position(positions1[1],anchor_of_scaffold1)
+                position_next_anchor2 = find_next_anchor_from_position(positions2[1],anchor_of_scaffold2)[1]
 
-            if position_next_anchor1[1] == None or position_next_anchor2 == None :
-                anchor_extended1 = create_full_anchor(front_anchor1)
-                anchor_extended2 = create_full_anchor(front_anchor2)
-                into_dictionary(front_anchor1,anchor_extended1[0],anchor_extended1[1],anchor_extended1[2])
-                into_dictionary(front_anchor2,anchor_extended2[0],anchor_extended2[1],anchor_extended2[2])
-                break
-            elif position_next_anchor1[1]> actual_position1 and position_next_anchor2 > actual_position2 :
-                actual_position1 = position_next_anchor1[1]
-                actual_position2 = position_next_anchor2
-                actual_anchor = position_next_anchor1[0]
+                if position_next_anchor1[1] == None or position_next_anchor2 == None :
+                    anchor_extended1 = create_full_anchor(front_anchor1)
+                    anchor_extended2 = create_full_anchor(front_anchor2)
+                    into_dictionary(front_anchor1,anchor_extended1[0],anchor_extended1[1],anchor_extended1[2])
+                    into_dictionary(front_anchor2,anchor_extended2[0],anchor_extended2[1],anchor_extended2[2])
+                    break
+                elif position_next_anchor1[1]> actual_position1 and position_next_anchor2 > actual_position2 :
+                    actual_position1 = position_next_anchor1[1]
+                    actual_position2 = position_next_anchor2
+                    actual_anchor = position_next_anchor1[0]
+                else :
+                    break
             else :
-                break
+                into_dictionary(front_anchor1,actual_anchor,actual_position1)
+                into_dictionary(front_anchor2,actual_anchor,actual_position2)
+
+                position_next_anchor1 = find_next_anchor_from_position(actual_position1,anchor_of_scaffold1)
+                position_next_anchor2 = find_next_anchor_from_position(actual_position2,anchor_of_scaffold2)[1]
+
+                if position_next_anchor1[0] != None and position_next_anchor2 != None :
+                    actual_position1 = position_next_anchor1[1]
+                    actual_position2 = position_next_anchor2
+                    actual_anchor = position_next_anchor1[0]
+                else :
+                    break
 
     back_anchor1 = {}
     back_anchor2 = {}
@@ -553,29 +567,42 @@ def multi_anchor_extension (anchor_dictionary : tuple[dict,dict], absolute_posit
     if actual_position1 != None and actual_position2 != None :
         while actual_position1 > absolute_position_scaffold1 and actual_position2 > absolute_position_scaffold2 :
             anchor = extend_anchor_back(actual_position1,actual_position2,kmer_length,kmer_dictionary1,kmer_dictionary2,absolute_position_scaffold1,absolute_position_scaffold2,scaffold_length1,scaffold_length2)
-                                                      
-            
-            dictionary_in_dictionary(back_anchor1,anchor[0])
-            dictionary_in_dictionary(back_anchor2,anchor[1])
 
-            positions1 = extract_position_from_dictionary(anchor[0])
-            positions2 = extract_position_from_dictionary(anchor[1])
-            
-            position_previous_anchor1 = find_previous_anchor_from_position(positions1[0],anchor_of_scaffold1)
-            position_previous_anchor2 = find_previous_anchor_from_position(positions2[0],anchor_of_scaffold2)[1]
-            
-            
-            if position_previous_anchor1[1] == None or position_previous_anchor2 == None :
+            if anchor[0] != {} and anchor[1] != {} :                                        
+                dictionary_in_dictionary(back_anchor1,anchor[0])
+                dictionary_in_dictionary(back_anchor2,anchor[1])
+
+                positions1 = extract_position_from_dictionary(anchor[0])
+                positions2 = extract_position_from_dictionary(anchor[1])
                 
-                anchor_extended = create_full_anchor(back_anchor1)
-                into_dictionary(back_anchor1,anchor_extended[0],anchor_extended[1],anchor_extended[2])
-                break
-            elif position_previous_anchor1[1] < actual_position1 and position_previous_anchor2 < actual_position2 :
-                actual_position1 = position_previous_anchor1[1]
-                actual_position2 = position_previous_anchor2[1]
-                actual_anchor = position_previous_anchor1[0]
-            else : 
-                break
+                position_previous_anchor1 = find_previous_anchor_from_position(positions1[0],anchor_of_scaffold1)
+                position_previous_anchor2 = find_previous_anchor_from_position(positions2[0],anchor_of_scaffold2)[1]
+                
+                
+                if position_previous_anchor1[1] == None or position_previous_anchor2 == None :
+                    
+                    anchor_extended = create_full_anchor(back_anchor1)
+                    into_dictionary(back_anchor1,anchor_extended[0],anchor_extended[1],anchor_extended[2])
+                    break
+                elif position_previous_anchor1[1] < actual_position1 and position_previous_anchor2 < actual_position2 :
+                    actual_position1 = position_previous_anchor1[1]
+                    actual_position2 = position_previous_anchor2[1]
+                    actual_anchor = position_previous_anchor1[0]
+                else : 
+                    break
+            else :
+                into_dictionary(back_anchor1,actual_anchor,actual_position1)
+                into_dictionary(back_anchor2,actual_anchor,actual_position2)
+
+                position_previous_anchor1 = find_previous_anchor_from_position(positions1[0],anchor_of_scaffold1)
+                position_previous_anchor2 = find_previous_anchor_from_position(positions2[0],anchor_of_scaffold2)[1]
+                
+                if position_previous_anchor1[0] != None and position_previous_anchor2 != None :
+                    actual_position1 = position_previous_anchor1[1]
+                    actual_position2 = position_previous_anchor2
+                    actual_anchor = position_previous_anchor1[0]
+                else :
+                    break
 
     
     
@@ -647,8 +674,7 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
                 else :
                     break
     
-    print(full_anchor1)
-    print(full_anchor2)
+    
     
     return (full_anchor1,full_anchor2)
 
@@ -691,6 +717,9 @@ def find_scaffold_from_position(scaffold_dictionary : dict, absolute_position : 
     """
     it = 1
     position = 0
+    if len(scaffold_dictionary) == 1 :
+        return 1
+
     for scaffold in scaffold_dictionary.keys() :
         position += len(scaffold)
         if position > absolute_position :
@@ -735,20 +764,13 @@ def full_anchor_presence(scaffold_dictionary : dict, anchor_dictionary : dict) -
         full_length += len(scaffold)
     
     for anchor in ordered_dict.keys() :
-        
-        print(previous_anchor)
-        print(anchor_dictionary[anchor][0])
-        if previous_anchor == 0:
-            anchor_length += len(anchor)       
-        elif anchor_dictionary[anchor][0] > previous_anchor :
-            anchor_length += len(anchor)
-            
-        
+        anchor_length += len(anchor)
+
         previous_anchor = anchor_dictionary[anchor][0] + len(anchor)
     
     print(anchor_length)
     print(full_length)
-    return anchor_length/full_length
+    return anchor_length/full_length * 100
 
 # print(full_anchor_presence(scaffold_assemblage,multi_anchor[0]))
 
@@ -772,7 +794,7 @@ def anchor_number_per_scaffold (anchor_dictionary : dict, scaffold_dictionary : 
     
 #print(anchor_number_per_scaffold(multi_anchor[0],scaffold_assemblage))
 
-def link_between_scaffolds(anchor_dictionary1 : dict, anchor_dictionary2 : dict) -> dict :
+def link_between_scaffolds(anchor_dictionary1 : dict, anchor_dictionary2 : dict, scaffold_dictionary1 : dict, scaffold_dictionary2 : dict) -> dict :
     """
     Function that return a dictionary of the number of link between two scaffolds
     Input : dict : Dictionary of all the anchors of the first scaffold, dict : Dictionary of all the anchors of the second scaffold
@@ -782,14 +804,15 @@ def link_between_scaffolds(anchor_dictionary1 : dict, anchor_dictionary2 : dict)
     for anchor1 in anchor_dictionary1.keys() :
         for anchor2 in anchor_dictionary2.keys() :
             if anchor1 == anchor2 :
-                scaffold1 = find_scaffold_from_position(scaffold_assemblage,anchor_dictionary1[anchor1][0])
-                scaffold2 = find_scaffold_from_position(scaffold_assemblage,anchor_dictionary2[anchor2][0])
-                if scaffold2 != None : 
+                scaffold1 = find_scaffold_from_position(scaffold_dictionary1,anchor_dictionary1[anchor1][0])
+                scaffold2 = find_scaffold_from_position(scaffold_dictionary2,anchor_dictionary2[anchor2][0])
+                if scaffold2 != None and scaffold1 != None: 
                     key = str(scaffold1) + "--" + str(scaffold2)
                     if key not in link_between_scaffolds.keys() :
                         link_between_scaffolds[key] = 1
                     else :
                         link_between_scaffolds[key] += 1
+    
  
     sorted_dict = {k: link_between_scaffolds[k] for k in sorted(link_between_scaffolds.keys())}
     return sorted_dict
@@ -802,7 +825,13 @@ def link_between_scaffolds(anchor_dictionary1 : dict, anchor_dictionary2 : dict)
 def create_scaffold_dot(link_between_anchor_dict : dict, graph_name : str) -> file :
     """
     Function that create a dot file of the scaffold
-    Input : dict : Dictionary of all the anchors with their relative scaffolds (form = {anchor : [scaffold1,scaffold2]}), str : The name of the dot file you want to create
+    Input : dict : Dictionary 
+    
+    
+    
+    
+    
+    all the anchors with their relative scaffolds (form = {anchor : [scaffold1,scaffold2]}), str : The name of the dot file you want to create
     Output : file : A dot file of the scaffold
     """
     with open (graph_name+".dot","w") as dot_file :
@@ -830,7 +859,10 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
     scaffold1 = extract_scaffold(fasta_file1)
     scaffold2 = extract_scaffold(fasta_file2)
     if all_anchor == None :
-        all_anchors = find_all_anchor(kmer1,kmer2)
+        all_anchor = find_all_anchor(kmer1,kmer2)
+    
+        
+        
 
     multi_anchor = multi_scaffold_extension(scaffold1,scaffold2,all_anchor,kmer1,kmer2,kmer_size)
     if name_file_out != None :
@@ -862,24 +894,37 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
         
         
 
-        #Graph of the number of anchor per scaffold
+        #Graph of the percent of anchor in the fasta
         percent_of_anchor1 = full_anchor_presence(scaffold1,multi_anchor[0])
         percent_of_anchor2 = full_anchor_presence(scaffold2,multi_anchor[1])
         values = [percent_of_anchor1,percent_of_anchor2]
+        print(len(multi_anchorThr   [1]))
         labels = ["1","2"]
         plt.bar(labels,values)
-        plt.title("Number of anchor in per scaffold in the fasta")
+        plt.title("Percent of anchor in the fasta")
         plt.xlabel("Fasta file")
-        plt.ylabel("Anchor per scaffold of anchor")
+        plt.ylabel("Percent of anchor")
+        plt.show()
+
+        #number of anchor per scaffold
+        anchor_number1 = anchor_number_per_scaffold(multi_anchor[0],scaffold1)
+        anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
+        values = [anchor_number1,anchor_number2]
+        labels = ["1","2"]
+        plt.bar(labels,values)
+        plt.title("Number of anchor per scaffold")
+        plt.xlabel("Fasta file")
+        plt.ylabel("Number of anchor")
         plt.show()
 
         #Link between the anchors of the two scaffold
-        link = link_between_scaffolds(multi_anchor[0],multi_anchor[1])
+        
+        link = link_between_scaffolds(multi_anchor[0],multi_anchor[1],scaffold1,scaffold2)
         create_scaffold_dot(link,name_file_out)
         os.system("dot -Tpng "+ name_file_out + ".dot -o " + name_file_out + ".png")
         print("The png file has been created and named : " + name_file_out + ".png")
 
     return multi_anchor
 
-final_task("Test_sequences/rice_ass.fasta","Test_sequences/rice_ref.fasta",100,"test2",graphics=True)
+final = final_task("rice_ref.fasta","rice_ass.fasta",100,"test2",graphics=True)
 
