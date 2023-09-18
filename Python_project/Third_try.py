@@ -102,8 +102,8 @@ def extract_scaffold(file_name : str) -> dict:
     return scaffold_dictionary
 
 
-scaffold_assemblage = extract_scaffold("Test_sequences/rice_ass.fasta")
-scaffold_reference = extract_scaffold("Test_sequences/rice_ref.fasta")
+scaffold_assemblage = extract_scaffold("rice_ass.fasta")
+scaffold_reference = extract_scaffold("rice_ref.fasta")
 
 def unique (dictionnaire_kmer,kmer) :
     """
@@ -641,6 +641,7 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
     full_anchor2 = {}
     while position1 < max_position1 and position2 < max_position2 and list_iterator1 != len(scaffold_sequence_list1) and list_iterator2 != len(scaffold_sequence_list2):    
         if max_position_scaffold1 > max_position_scaffold2 :
+            print("1")
             while max_position_scaffold1 > max_position_scaffold2 and list_iterator2 != len(scaffold_sequence_list2)  :
                 if list_iterator2 != len(scaffold_sequence_list2) :
                     anchor = multi_anchor_extension(anchor_dict,position1,position2,len(scaffold_sequence_list1[list_iterator1]),len(scaffold_sequence_list2[list_iterator2]),kmer_length,kmer_dict1,kmer_dict2)
@@ -656,6 +657,7 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
                 else : 
                     break
         else :
+            print("2")
             while max_position_scaffold1 < max_position_scaffold2 and list_iterator1 != len(scaffold_sequence_list1):
                 if list_iterator1 != len(scaffold_sequence_list1) :
                     anchor = multi_anchor_extension(anchor_dict,position1,position2,len(scaffold_sequence_list1[list_iterator1]),len(scaffold_sequence_list2[list_iterator2]),kmer_length,kmer_dict1,kmer_dict2)
@@ -678,7 +680,8 @@ def multi_scaffold_extension(scaffold_dict1 : dict, scaffold_dict2 : dict, ancho
     
     return (full_anchor1,full_anchor2)
 
-#multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
+# multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
+# print(multi_anchor)
 
 if not(os.path.exists("multi_anchor.txt")) :
     multi_anchor = multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref,100)
@@ -825,13 +828,7 @@ def link_between_scaffolds(anchor_dictionary1 : dict, anchor_dictionary2 : dict,
 def create_scaffold_dot(link_between_anchor_dict : dict, graph_name : str) -> file :
     """
     Function that create a dot file of the scaffold
-    Input : dict : Dictionary 
-    
-    
-    
-    
-    
-    all the anchors with their relative scaffolds (form = {anchor : [scaffold1,scaffold2]}), str : The name of the dot file you want to create
+    Input : dict : Dictionary of all the anchors with their relative scaffolds (form = {anchor : [scaffold1,scaffold2]}), str : The name of the dot file you want to create
     Output : file : A dot file of the scaffold
     """
     with open (graph_name+".dot","w") as dot_file :
@@ -891,15 +888,13 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
 
         scaffold_of_two_anchor = scaffold_of_two_anchor(scaffold1,scaffold2,multi_anchor[0],multi_anchor[1])   
         print(f"Here is the list of all the anchors and the scaffold were it belong ( form = anchor : [scaffold1, scaffold2]) {scaffold_of_two_anchor}")
-    else :
-        
-        
+    else :       
 
         #Graph of the percent of anchor in the fasta
         percent_of_anchor1 = full_anchor_presence(scaffold1,multi_anchor[0])
         percent_of_anchor2 = full_anchor_presence(scaffold2,multi_anchor[1])
         values = [percent_of_anchor1,percent_of_anchor2]
-        print(len(multi_anchorThr   [1]))
+        print(len(multi_anchor[1]))
         labels = ["1","2"]
         plt.bar(labels,values)
         plt.title("Percent of anchor in the fasta")
@@ -911,6 +906,7 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
         anchor_number1 = anchor_number_per_scaffold(multi_anchor[0],scaffold1)
         anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
         values = [anchor_number1,anchor_number2]
+        print(values)
         labels = ["1","2"]
         plt.bar(labels,values)
         plt.title("Number of anchor per scaffold")
@@ -926,5 +922,5 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
 
     return multi_anchor
 
-final = final_task("rice_ref.fasta","rice_ass.fasta",100,"test2",graphics=True)
+final = final_task("rice_ass.fasta","rice_ref.fasta",100,"test2",graphics= False)
 

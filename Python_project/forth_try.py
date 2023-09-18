@@ -60,8 +60,10 @@ def recupererKmers(nomfichier,k) :
     #print("Dictionary done successfully") 
     return kmer
 
-kmer_ref = recupererKmers("rice_ref.fasta",100)
-kmer_ass = recupererKmers("rice_ass.fasta",100)
+kmer_ref = recupererKmers("Test_sequences/rice_ref.fasta",100)
+kmer_ass = recupererKmers("Test_sequences/rice_ass.fasta",100)
+
+
 
 def extract_scaffold(file_name : str) -> dict:
     """
