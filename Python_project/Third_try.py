@@ -842,11 +842,83 @@ def create_scaffold_dot(link_between_anchor_dict : dict, graph_name : str) -> fi
 
 #create_scaffold_dot(scaffold_of_two_anchor(scaffold_assemblage,scaffold_reference,multi_anchor[0],multi_anchor[1]),"test")
 
+def scaffold_of_two_anchors(scaffold_dictionary1 : dict, scaffold_dictionary2 : dict, anchor_dictionary1 : dict, anchor_dictionary2 : dict) -> dict :
+    """
+    Function that return a dictionary of all the anchors and the scaffold were it belong
+    Input : dict : Dictionary of all the anchors of the first scaffold, dict : Dictionary of all the anchors of the second scaffold
+    Output : dict : Dictionary of all the anchors and the scaffold were it belong {form = {anchor : [scaffold1,scaffold2]})
+    """
+    scaffold_of_anchors = {}
+    for anchor1 in anchor_dictionary1.keys() :
+        for anchor2 in anchor_dictionary2.keys() :
+            if anchor1 == anchor2 :
+                scaffold1 = find_scaffold_from_position(scaffold_dictionary1,anchor_dictionary1[anchor1][0])
+                scaffold2 = find_scaffold_from_position(scaffold_dictionary2,anchor_dictionary2[anchor2][0])
+                if scaffold2 != None and scaffold1 != None: 
+                    scaffold_of_anchors[anchor1] = [scaffold1,scaffold2]
+    
+    return scaffold_of_anchors
 
-def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_out: str = None, graphics : bool = False, all_anchor : dict = None) :
+def graph_anchor_per_scaffold(labels : list, values : list) -> None :
+    """
+    Function that create a graph of the number of anchor per scaffold
+    Input : list : The labels of the graph, list : The values of the graph
+    Output : Print the graph of the number of anchor per scaffold
+    """
+    plt.bar(labels,values)
+    plt.title("Number of anchor per scaffold")
+    plt.xlabel("Fasta file")
+    plt.ylabel("Number of anchor")
+    plt.show()
+
+def graph_percent_of_anchor_in_fasta(labels : list, values : list) -> None :
+    """
+    Function that create a graph of the percent of anchor in the fasta
+    Input : list : The labels of the graph, list : The values of the graph
+    Output : Print the graph of the percent of anchor in the fasta
+    """
+    plt.bar(labels,values)
+    plt.title("Percent of anchor in the fasta")
+    plt.xlabel("Fasta file")
+    plt.ylabel("Percent of anchor")
+    plt.show()
+    
+def graph_link_between_anchors(link : dict , output_name : str)-> None :
+    """
+    
+    """
+    create_scaffold_dot(link,name_file_out)
+    os.system("dot -Tpng "+ name_file_out + ".dot -o " + name_file_out + ".png")
+    print("The png file has been created and named : " + name_file_out + ".png")
+
+def extract_anchors(file_name : str)-> dict :
+    """
+    Function that extract the anchors from a file
+    Input : str : The name of the file you want to extract the anchors
+    Output : dict : A dictionary of all the anchors (form = {anchor : [position(s)]})
+    """
+    anchor_dict1 = {}
+    anchor_dict2 = {}
+    num_sequence = 0
+    with open(file_name, "r") as file:
+        for line in file:
+            if line[0:3] == "end" and num_sequence == 0 :
+                num_sequence += 1
+                anchor_dict1 = anchor_dict2
+                anchor_dict2 = {}
+            elif line[0:3] != "end":
+                kmer, positions = line.strip().split(": ")
+                positions = eval(positions)  
+                into_dictionary(anchor_dict2,kmer,positions[0])
+
+    multi_anchor = (anchor_dict1,anchor_dict2)        
+
+    return multi_anchor
+
+def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_out: str = None, graphics : bool = False, all_anchor : str = None) :
     """
     Final function of the project to compare the two fasta file
-    Input : str : The first fasta file, str : The second fasta file, int : Kmer size you want, str : The name of the file you want to create, bool : If you want to create a graph or not, dict : The dictionary of all the anchors ( form = ({sequence : [position in scaffold dictionary 1]}, {sequence : [position in scaffold dictionary 2]}))
+    Input : str : The first fasta file, str : The second fasta file, int : Kmer size you want, str : The name of the file you want to create, bool : If you want to create a graph or not, str : The dictionary of all the anchors ( form = ({sequence : [position in scaffold dictionary 1]}, {sequence : [position in scaffold dictionary 2]}))
     Output : The stats needed and the anchor file 
     """
 
@@ -855,14 +927,18 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
 
     scaffold1 = extract_scaffold(fasta_file1)
     scaffold2 = extract_scaffold(fasta_file2)
-    
+
+    #extracting the anchors :
     if all_anchor == None :
         all_anchor = find_all_anchor(kmer1,kmer2)
-    
+    else :
+        all_anchor = extract_anchors(all_anchor)
+
         
         
 
     multi_anchor = multi_scaffold_extension(scaffold1,scaffold2,all_anchor,kmer1,kmer2,kmer_size)
+    print(multi_anchor)
     if name_file_out != None :
         with open (name_file_out+".txt","w") as file :
             for kmer, positions in multi_anchor[0].items():
@@ -886,41 +962,27 @@ def final_task (fasta_file1 : str, fasta_file2 : str,kmer_size : int, name_file_
         anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
         print(f"The number of anchor per scaffold in the second fasta is {anchor_number2}")
 
-        scaffold_of_two_anchor = scaffold_of_two_anchor(scaffold1,scaffold2,multi_anchor[0],multi_anchor[1])   
+        scaffold_of_two_anchor = scaffold_of_two_anchors(scaffold1,scaffold2,multi_anchor[0],multi_anchor[1])   
         print(f"Here is the list of all the anchors and the scaffold were it belong ( form = anchor : [scaffold1, scaffold2]) {scaffold_of_two_anchor}")
+
     else :       
 
         #Graph of the percent of anchor in the fasta
         percent_of_anchor1 = full_anchor_presence(scaffold1,multi_anchor[0])
         percent_of_anchor2 = full_anchor_presence(scaffold2,multi_anchor[1])
         values = [percent_of_anchor1,percent_of_anchor2]
-        print(len(multi_anchor[1]))
         labels = ["1","2"]
-        plt.bar(labels,values)
-        plt.title("Percent of anchor in the fasta")
-        plt.xlabel("Fasta file")
-        plt.ylabel("Percent of anchor")
-        plt.show()
+        graph_percent_of_anchor_in_fasta(labels,values)
 
         #number of anchor per scaffold
         anchor_number1 = anchor_number_per_scaffold(multi_anchor[0],scaffold1)
         anchor_number2 = anchor_number_per_scaffold(multi_anchor[1],scaffold2)
         values = [anchor_number1,anchor_number2]
-        print(values)
-        labels = ["1","2"]
-        plt.bar(labels,values)
-        plt.title("Number of anchor per scaffold")
-        plt.xlabel("Fasta file")
-        plt.ylabel("Number of anchor")
-        plt.show()
+        graph_anchor_per_scaffold(labels,values)
 
         #Link between the anchors of the two scaffold
         link = link_between_scaffolds(multi_anchor[0],multi_anchor[1],scaffold1,scaffold2)
-        create_scaffold_dot(link,name_file_out)
-        os.system("dot -Tpng "+ name_file_out + ".dot -o " + name_file_out + ".png")
-        print("The png file has been created and named : " + name_file_out + ".png")
-
+    
     return multi_anchor
 
 final = final_task("rice_ass.fasta","rice_ref.fasta",100,"test2",graphics= False)
-
