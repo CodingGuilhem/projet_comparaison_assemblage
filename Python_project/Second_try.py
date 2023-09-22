@@ -61,7 +61,6 @@ def recupererKmers(nomfichier,k) :
 
 kmer_ref = recupererKmers("Test_sequences/rice_ref.fasta",100)
 kmer_ass = recupererKmers("Test_sequences/rice_ass.fasta",100)
-
 def extract_scaffold(file_name : str) -> dict:
     """
     Function that extract the scaffold of a fasta file 
@@ -459,37 +458,20 @@ def extract_position_from_dictionary (dictionary : dict) -> tuple[int,int] :
     else :
         return min(position)[0], max(position)[0]
 # Return the max and min value of a dictionary (form = {"sequence" : [value(s)],...})
-def dictionary_in_dictionary(dictionary : dict, dictionary_to_add : dict) -> dict :
-
-    """
-    Function that add a dictionary into another dictionary
-    Input : dict : The dictionary that will be added to the other dictionary, dict : The dictionary that will be added
-    Output : dict : The first dictionary with the second dictionary added to it
-
-    """
-    for key in dictionary_to_add.keys() :
-        into_dictionary(dictionary,key,dictionary_to_add[key][0])
-    return dictionary
 
 def multi_anchor_extension_one_scaffold(scaffold1 : str,scaffold2 : str ,scaffold_dictionary1 : dict, scaffold_dictionary2 : dict, anchor_dictionary : dict, kmer_dictionary1 : dict, kmer_dictionary2 : dict ) -> dict:
-   
+    """
+    """
     anchor_of_scaffolds = {}
     for anchor in anchor_dictionary.keys() :
         if kmer_dictionary1[anchor][0]>= scaffold_dictionary1[scaffold1][0] and kmer_dictionary2[anchor][0] >= scaffold_dictionary2[scaffold2][0] and  kmer_dictionary1[anchor][0]< scaffold_dictionary1[scaffold1][0]+len(scaffold1) and kmer_dictionary2[anchor][0] < scaffold_dictionary2[scaffold2][0]+len(scaffold2) :
             into_dictionary(anchor_of_scaffolds,anchor, anchor_dictionary[anchor][0] )
-    anchor_of_scaffolds = ordered_dict_by_position(anchor_of_scaffolds)
 
+    anchor_of_scaffolds = ordered_dict_by_position(anchor_of_scaffolds)
     kmer_number =0
     kmer_list = list(anchor_of_scaffolds.keys())
-    
+  
     full_anchor = extend_anchor_full(kmer_list[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer_list[kmer_number]][0],kmer_dictionary2[kmer_list[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
-    
-    if full_anchor[0] == {} or full_anchor[1] == {} :
-        kmer_number += 1
-        full_anchor = extend_anchor_full(kmer_list[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer_list[kmer_number]][0],kmer_dictionary2[kmer_list[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
-    
-    anchor_scaffold1 = full_anchor[0]
-    anchor_scaffold2 = full_anchor[1]
     position1 =  extract_position_from_dictionary(full_anchor[0])
     position2 = extract_position_from_dictionary(full_anchor[1])
     
@@ -497,44 +479,32 @@ def multi_anchor_extension_one_scaffold(scaffold1 : str,scaffold2 : str ,scaffol
     while kmer_number < len(kmer_list) and position1[1]< scaffold_dictionary1[scaffold1][0]+len(scaffold1) and position2[1] < scaffold_dictionary1[scaffold1][0]+ len(scaffold2) :
         kmer_number += 1
         if kmer_number < len(kmer_list) and (anchor_dictionary[kmer_list[kmer_number]][0] < position1[0] or anchor_dictionary[kmer_list[kmer_number]][0] > position1 [1]) and (anchor_dictionary[kmer_list[kmer_number]][0] < position2[0] or anchor_dictionary[kmer_list[kmer_number]][0] > position2 [1]):
-            plus_kmer = extend_anchor_full(kmer_list[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer_list[kmer_number]][0],kmer_dictionary2[kmer_list[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
-            dictionary_in_dictionary(anchor_scaffold1,plus_kmer[0])
-            dictionary_in_dictionary(anchor_scaffold2,plus_kmer[1])
-            position1 =  extract_position_from_dictionary(plus_kmer[0])
-            position2 = extract_position_from_dictionary(plus_kmer[1])
+            full_anchor += extend_anchor_full(kmer_list[kmer_number],scaffold1,scaffold2,kmer_dictionary1[kmer_list[kmer_number]][0],kmer_dictionary2[kmer_list[kmer_number]][0],kmer_dictionary1,kmer_dictionary2)
+            position1 =  extract_position_from_dictionary(full_anchor[0])
+            position2 = extract_position_from_dictionary(full_anchor[1])
         
         display_charging_bar((kmer_number/len(kmer_list)*100))
     
-    with open("resultat2.txt","w") as file :
-        file.write(str(full_anchor))
-        file.write("\n")
-        file.write(str(position1)+ str(position2)+"\n")
-        file.write(str(scaffold_dictionary1[scaffold1][0]+len(scaffold1))+str(scaffold_dictionary2[scaffold2][0]+len(scaffold2)))
-
     return full_anchor
 
 
-print(multi_anchor_extension_one_scaffold(scaffold_ancre_assemblage,scaffold_ancre_reference,scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref))
+#print(multi_anchor_extension_one_scaffold(scaffold_ancre_assemblage,scaffold_ancre_reference,scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref))
 
 def multi_scaffold_extension(scaffold_dictionary1 : dict, scaffold_dictionary2 : dict, anchor_dictionary : dict,kmer_dictionary1 : dict,kmer_dictionary2 : dict) :
     extreme_position1 = extract_position_from_dictionary(scaffold_dictionary1)
     extreme_position2 = extract_position_from_dictionary(scaffold_dictionary2)
+    absolute_position1 =  0
+    absolute_position2 = 0
     scaffold_number1 = 0
     scaffold_number2 = 0
     scaffolds1 = list(scaffold_dictionary1.keys())
     scaffolds2 = list(scaffold_dictionary2.keys())
-
     current_scaffold  = multi_anchor_extension_one_scaffold(scaffolds1[scaffold_number1],scaffolds2[scaffold_number2],scaffold_dictionary1,scaffold_dictionary2,anchor_dictionary,kmer_dictionary1,kmer_dictionary2)
-
-    absolute_position1 = extract_position_from_dictionary(current_scaffold[0])
-    absolute_position2 = extract_position_from_dictionary(current_scaffold[1])
-
+    position
     while absolute_position1 < extreme_position1[1] or absolute_position2 < extreme_position2[1] :
-        print("ok")
-#multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref)
 
-
-def supprimer_clef(dictionnaire, clef):
-    if clef in dictionnaire:
-        del dictionnaire[clef]
     
+multi_scaffold_extension(scaffold_assemblage,scaffold_reference,all_anchors,kmer_ass,kmer_ref)
+
+
+     
